@@ -13,11 +13,12 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                withCredentials([string(credentialsId: 'git-repo-token', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([string(credentialsId: '2ee8dcbe-91a7-46a3-b720-39e9cd07db57', variable: 'GITHUB_TOKEN')]) {
                     sh '''
                     echo "Cloning repository..."
                     rm -rf $APP_DIR  # Ensure a fresh clone
-                    git clone https://$GITHUB_TOKEN@github.com/Gayathri-Musham-07/to-do-list-practise.git $APP_DIR
+                    git clone https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR
+
                     '''
                 }
             }
