@@ -1,0 +1,64 @@
+pipeline {
+    agent { label 'docker-agent-label' }
+
+    environment {
+        AWS_ACCOUNT_ID = '571600845308'
+        AWS_REGION = 'ap-southeast-2'
+        EC2_USER = 'ubuntu'
+        EC2_HOST = '13.236.207.224'
+        APP_DIR = '/home/ubuntu/todo-app'
+        PYTHON_BIN = '/usr/bin/python3'
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                withCredentials([string(credentialsId: 'git-repo-token', variable: 'GITHUB_TOKEN')]) {
+                    sh '''
+                    echo "Cloning repository..."
+                    rm -rf $APP_DIR  # Ensure a fresh clone
+                    git clone https://$GITHUB_TOKEN@github.com/Gayathri-Musham-07/to-do-list-practise.git $APP_DIR
+                    '''
+                }
+            }
+        }
+
+        stage('Run Pylint Checks') {
+            steps {
+                sh '''
+                echo "Running Pylint Checks..."
+                cd $APP_DIR
+                chmod +x pylint.sh
+                ./pylint.sh || true  # Prevent failure from stopping pipeline
+                '''
+            }
+        }
+
+        stage('Deploy to EC2') {
+            steps {
+                sshagent(['858d053b-55ec-4c46-9cb6-22f757cae15c']) {
+                    sh '''
+                    echo "Transferring application files to EC2..."
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
+                    scp -o StrictHostKeyChecking=no -r $APP_DIR/* $EC2_USER@$EC2_HOST:$APP_DIR
+
+                    echo "Starting application using Uvicorn..."
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
+                    cd $APP_DIR
+                    source venv/bin/activate || python3 -m venv venv && source venv/bin/activate
+
+                    echo "Installing dependencies..."
+                    pip install -r requirements.txt
+
+                    echo "Restarting Uvicorn if already running..."
+                    pkill -f "uvicorn" || true
+                    
+                    echo "Starting Uvicorn..."
+                    nohup uvicorn app:app --host 0.0.0.0 --port 8000 > app.log 2>&1 &
+                    EOF
+                    '''
+                }
+            }
+        }
+    }
+}
