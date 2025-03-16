@@ -5,7 +5,7 @@ pipeline {
         AWS_ACCOUNT_ID = '571600845308'
         AWS_REGION = 'ap-southeast-2'
         EC2_USER = 'ubuntu'
-        EC2_HOST = '13.236.207.224'
+        EC2_HOST = '3.27.196.148'  // Your deployment server public IP
         APP_DIR = '/home/ubuntu/todo-app'
         PYTHON_BIN = '/usr/bin/python3'
     }
@@ -18,7 +18,6 @@ pipeline {
                     echo "Cloning repository..."
                     rm -rf $APP_DIR  # Ensure a fresh clone
                     git clone https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR
-
                     '''
                 }
             }
@@ -37,7 +36,7 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
-                sshagent(['858d053b-55ec-4c46-9cb6-22f757cae15c']) {
+                sshagent(['e9e20266-7450-410e-aabf-9bc4a99fa4c5']) {  // Update with your EC2 SSH credentials
                     sh '''
                     echo "Transferring application files to EC2..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
