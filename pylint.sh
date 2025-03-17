@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euxo pipefail  
+set -euxo pipefail
 
 APP_DIR="/home/ubuntu/todo-app"
 VENV_DIR="$APP_DIR/venv"
@@ -16,8 +16,10 @@ source "$VENV_DIR/bin/activate"
 # Ensure pylint is installed
 pip install --upgrade pip pylint
 
+# Run pylint and save the report to the log file
 pylint $(find . -name "*.py" -not -path "./venv/*") | tee "$PYLINT_LOG"
 
+# Deactivate virtual environment
 deactivate
 
 # Exit with error code if pylint finds errors
