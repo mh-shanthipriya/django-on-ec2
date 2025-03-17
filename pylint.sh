@@ -17,7 +17,6 @@ source "$VENV_DIR/bin/activate"
 # Ensure pylint is installed
 pip install --upgrade pip pylint
 
-# Run pylint, excluding the virtual environment folder
 pylint $(find . -name "*.py" -not -path "./venv/*") | tee "$PYLINT_LOG"
 
 deactivate
