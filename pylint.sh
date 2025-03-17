@@ -7,20 +7,19 @@ PYLINT_LOG="pylint_report.log"
 
 cd "$APP_DIR"
 
-# Create and activate virtual environment if not exists
+# Create virtual environment if it doesn't exist
 if [ ! -d "$VENV_DIR" ]; then
     python3 -m venv "$VENV_DIR"
 fi
 
 source "$VENV_DIR/bin/activate"
 
-# Ensure pip and pylint are installed
+# Ensure pylint is installed
 pip install --upgrade pip pylint
 
-# Run pylint on all Python files and save the output
-pylint $(find . -name "*.py") | tee "$PYLINT_LOG"
+# Run pylint, excluding the virtual environment folder
+pylint $(find . -name "*.py" -not -path "./venv/*") | tee "$PYLINT_LOG"
 
-# Deactivate virtual environment
 deactivate
 
 # Exit with error code if pylint finds errors
