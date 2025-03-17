@@ -6,7 +6,7 @@ pipeline {
         AWS_REGION = 'ap-southeast-2'
         EC2_USER = 'ubuntu'
         EC2_HOST = '54.252.172.203'
-        APP_DIR = '/home/ubuntu/todo-app'
+        APP_DIR = '/home/ubuntu/todoApp'  // Changed from todo-app to todoApp
         PYTHON_BIN = '/usr/bin/python3'
     }
 
@@ -50,13 +50,8 @@ pipeline {
                 sudo apt install -y python3-pip  # Ensure pip is installed
                 cd $APP_DIR
 
-                # Check if pylint.sh exists, and if not, create one for linting
-                if [ ! -f "pylint.sh" ]; then
-                    echo "#!/bin/bash" > pylint.sh
-                    echo "pylint \$(find . -name '*.py')" >> pylint.sh
-                    chmod +x pylint.sh
-                fi
-
+                # Ensure pylint.sh is correct and executable
+                chmod +x pylint.sh
                 ./pylint.sh || exit 1
                 '''
             }
@@ -84,7 +79,7 @@ pipeline {
                     pip install -r requirements.txt || exit 1
 
                     echo "Setting up Systemd Service for Uvicorn..."
-                    sudo tee /etc/systemd/system/todo-app.service > /dev/null <<EOL
+                    sudo tee /etc/systemd/system/todoApp.service > /dev/null <<EOL
                     [Unit]
                     Description=Todo App Service
                     After=network.target
@@ -101,9 +96,9 @@ pipeline {
 
                     echo "Restarting Application..."
                     sudo systemctl daemon-reload
-                    sudo systemctl enable todo-app
-                    sudo systemctl restart todo-app
-                    sudo systemctl status todo-app --no-pager
+                    sudo systemctl enable todoApp
+                    sudo systemctl restart todoApp
+                    sudo systemctl status todoApp --no-pager
                     EOF
                     '''
                 }
