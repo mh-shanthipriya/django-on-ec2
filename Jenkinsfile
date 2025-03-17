@@ -17,7 +17,7 @@ pipeline {
                     sh '''
                     echo "Cloning repository..."
                     rm -rf $APP_DIR  # Ensure a fresh clone
-                    git clone https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR
+                    git clone https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
                     '''
                 }
             }
@@ -38,6 +38,9 @@ pipeline {
             steps {
                 sshagent(['finalsshkeycredentials']) {  // Update with your EC2 SSH credentials
                     sh '''
+                    echo "Testing SSH Connection..."
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo 'SSH Connection Successful'"
+
                     echo "Transferring application files to EC2..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
                     scp -o StrictHostKeyChecking=no -r $APP_DIR/* $EC2_USER@$EC2_HOST:$APP_DIR
@@ -45,14 +48,15 @@ pipeline {
                     echo "Starting application using Uvicorn..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
                     cd $APP_DIR
-                    source venv/bin/activate || python3 -m venv venv && source venv/bin/activate
-
+                    if [ ! -d "venv" ]; then python3 -m venv venv; fi
+                    source venv/bin/activate
                     echo "Installing dependencies..."
-                    pip install -r requirements.txt
+                    pip install --upgrade pip setuptools wheel
+                    pip install -r requirements.txt || exit 1
 
                     echo "Restarting Uvicorn if already running..."
-                    pkill -f "uvicorn" || true
-                    
+                    pgrep -f "uvicorn" && pkill -f "uvicorn"
+
                     echo "Starting Uvicorn..."
                     nohup uvicorn app:app --host 0.0.0.0 --port 8000 > app.log 2>&1 &
                     EOF
