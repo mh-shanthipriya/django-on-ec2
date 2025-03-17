@@ -53,7 +53,7 @@ pipeline {
                 # Check if pylint.sh exists, and if not, create one for linting
                 if [ ! -f "pylint.sh" ]; then
                     echo "#!/bin/bash" > pylint.sh
-                    echo "pylint $(find . -name '*.py')" >> pylint.sh
+                    echo "pylint \$(find . -name '*.py')" >> pylint.sh
                     chmod +x pylint.sh
                 fi
 
