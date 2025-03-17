@@ -5,7 +5,7 @@ pipeline {
         AWS_ACCOUNT_ID = '571600845308'
         AWS_REGION = 'ap-southeast-2'
         EC2_USER = 'ubuntu'
-        EC2_HOST = '3.27.196.148'  // Your deployment server public IP
+        EC2_HOST = '3.27.60.227'  // Your deployment server public IP
         APP_DIR = '/home/ubuntu/todo-app'
         PYTHON_BIN = '/usr/bin/python3'
     }
@@ -36,7 +36,7 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
-                sshagent(['e9e20266-7450-410e-aabf-9bc4a99fa4c5']) {  // Update with your EC2 SSH credentials
+                sshagent(['finalsshkeycredentials']) {  // Update with your EC2 SSH credentials
                     sh '''
                     echo "Transferring application files to EC2..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
