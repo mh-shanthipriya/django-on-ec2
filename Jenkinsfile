@@ -11,16 +11,28 @@ pipeline {
     }
 
     stages {
+        stage('Install Dependencies') {
+            steps {
+                sh '''
+                echo "Checking and Installing Git if not available..."
+                if ! command -v git &> /dev/null; then sudo apt update && sudo apt install -y git; fi
+                '''
+            }
+        }
+
         stage('Clone Repository') {
             steps {
                 withCredentials([usernamePassword(credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
                     sh '''
-                    echo "Checking if Git is installed..."
-                    git --version || { echo "Git not installed"; exit 1; }
-                    
-                    echo "Cloning repository using Username & Password..."
+                    echo "Configuring Git Credentials Securely..."
+                    export GIT_ASKPASS=/tmp/git_askpass.sh
+                    echo '#!/bin/sh' > $GIT_ASKPASS
+                    echo 'echo "$GIT_PASSWORD"' >> $GIT_ASKPASS
+                    chmod +x $GIT_ASKPASS
+
+                    echo "Cloning Repository..."
                     rm -rf $APP_DIR
-                    git clone --depth 1 https://$GIT_USERNAME:$GIT_PASSWORD@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
+                    git clone --depth 1 https://$GIT_USERNAME@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
                     '''
                 }
             }
@@ -32,7 +44,7 @@ pipeline {
                 echo "Running Pylint Checks..."
                 cd $APP_DIR
                 chmod +x pylint.sh
-                ./pylint.sh || true
+                ./pylint.sh || exit 1
                 '''
             }
         }
@@ -48,7 +60,7 @@ pipeline {
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
                     scp -o StrictHostKeyChecking=no -r $APP_DIR/* $EC2_USER@$EC2_HOST:$APP_DIR
 
-                    echo "Starting application using Uvicorn..."
+                    echo "Deploying Application..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
                     cd $APP_DIR
                     if [ ! -d "venv" ]; then python3 -m venv venv; fi
@@ -56,11 +68,27 @@ pipeline {
                     pip install --upgrade pip setuptools wheel
                     pip install -r requirements.txt || exit 1
 
-                    echo "Restarting Uvicorn if already running..."
-                    pgrep -f "uvicorn" && pkill -f "uvicorn"
+                    echo "Setting up Systemd Service for Uvicorn..."
+                    sudo tee /etc/systemd/system/todo-app.service > /dev/null <<EOL
+                    [Unit]
+                    Description=Todo App Service
+                    After=network.target
 
-                    echo "Starting Uvicorn..."
-                    nohup uvicorn app:app --host 0.0.0.0 --port 8000 > app.log 2>&1 &
+                    [Service]
+                    User=$EC2_USER
+                    WorkingDirectory=$APP_DIR
+                    ExecStart=$APP_DIR/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+                    Restart=always
+
+                    [Install]
+                    WantedBy=multi-user.target
+                    EOL
+
+                    echo "Restarting Application..."
+                    sudo systemctl daemon-reload
+                    sudo systemctl enable todo-app
+                    sudo systemctl restart todo-app
+                    sudo systemctl status todo-app --no-pager
                     EOF
                     '''
                 }
