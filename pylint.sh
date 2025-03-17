@@ -7,7 +7,7 @@ PYLINT_LOG="pylint_report.log"
 cd "$APP_DIR"
 
 # Create virtual environment if it doesn't exist
-if [ ! -d "$VENV_DIR" ]; then
+if [ ! -d "$VENV_DIR" ]; then  
     python3 -m venv "$VENV_DIR"
 fi
 
