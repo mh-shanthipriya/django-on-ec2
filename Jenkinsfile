@@ -15,14 +15,18 @@ pipeline {
             steps {
                 sh '''
                 echo "Checking and Installing Git if not available..."
-                if ! command -v git &> /dev/null; then sudo apt update && sudo apt install -y git; fi
+                if ! command -v git &> /dev/null; then 
+                    sudo apt update && sudo apt install -y git; 
+                fi
                 '''
             }
         }
 
         stage('Clone Repository') {
             steps {
-                withCredentials([usernamePassword(credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef', 
+                                                  usernameVariable: 'GIT_USERNAME', 
+                                                  passwordVariable: 'GIT_PASSWORD')]) {
                     sh '''
                     echo "Configuring Git Credentials Securely..."
                     export GIT_ASKPASS=/tmp/git_askpass.sh
@@ -65,7 +69,9 @@ pipeline {
                     echo "Deploying Application..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
                     cd $APP_DIR
-                    if [ ! -d "venv" ]; then python3 -m venv venv; fi
+                    if [ ! -d "venv" ]; then 
+                        python3 -m venv venv; 
+                    fi
                     source venv/bin/activate
                     pip install --upgrade pip setuptools wheel
                     pip install -r requirements.txt || exit 1
