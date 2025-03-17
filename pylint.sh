@@ -1,10 +1,12 @@
 #!/bin/bash
 set -euxo pipefail
 
-APP_DIR="/home/ubuntu/todo-app"
+# Set the correct app directory
+APP_DIR="/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop/todoApp"
 VENV_DIR="$APP_DIR/venv"
 PYLINT_LOG="pylint_report.log"
 
+# Navigate to the app directory
 cd "$APP_DIR"
 
 # Create virtual environment if it doesn't exist
@@ -18,7 +20,7 @@ source "$VENV_DIR/bin/activate"
 pip install --upgrade pip pylint
 
 # Find Python files excluding venv
-PYTHON_FILES=$(find . -type f -name "*.py" ! -path "./venv/*")
+PYTHON_FILES=$(find "$APP_DIR" -type f -name "*.py" ! -path "$APP_DIR/venv/*")
 
 if [ -z "$PYTHON_FILES" ]; then
     echo "No Python files found for linting."
