@@ -5,7 +5,7 @@ pipeline {
         AWS_ACCOUNT_ID = '571600845308'
         AWS_REGION = 'ap-southeast-2'
         EC2_USER = 'ubuntu'
-        EC2_HOST = '3.27.60.227'
+        EC2_HOST = '54.252.172.203'
         APP_DIR = '/home/ubuntu/todo-app'
         PYTHON_BIN = '/usr/bin/python3'
     }
