@@ -4,7 +4,8 @@ set -euxo pipefail
 APP_DIR="/home/ubuntu/todo-app"
 VENV_DIR="$APP_DIR/venv"
 PYLINT_LOG="pylint_report.log"
-cd "$APP_DIR"  
+
+cd "$APP_DIR"
 
 # Create virtual environment if it doesn't exist
 if [ ! -d "$VENV_DIR" ]; then  
@@ -13,16 +14,25 @@ fi
 
 source "$VENV_DIR/bin/activate"
 
-# Ensure pylint is installed
+# Upgrade pip and install pylint if not present
 pip install --upgrade pip pylint
 
-# Run pylint and save the report to the log file
-pylint $(find . -name "*.py" -not -path "./venv/*") | tee "$PYLINT_LOG"
+# Find Python files excluding venv
+PYTHON_FILES=$(find . -type f -name "*.py" ! -path "./venv/*")
+
+if [ -z "$PYTHON_FILES" ]; then
+    echo "No Python files found for linting."
+    exit 0
+fi
+
+# Run pylint and save the report
+pylint $PYTHON_FILES | tee "$PYLINT_LOG"
 
 # Deactivate virtual environment
 deactivate
 
 # Exit with error code if pylint finds errors
 if grep -q "error" "$PYLINT_LOG"; then
+    echo "Pylint found errors, check $PYLINT_LOG"
     exit 1
 fi
