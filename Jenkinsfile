@@ -49,7 +49,14 @@ pipeline {
                 sudo apt update
                 sudo apt install -y python3-pip  # Ensure pip is installed
                 cd $APP_DIR
-                chmod +x pylint.sh
+
+                # Check if pylint.sh exists, and if not, create one for linting
+                if [ ! -f "pylint.sh" ]; then
+                    echo "#!/bin/bash" > pylint.sh
+                    echo "pylint $(find . -name '*.py')" >> pylint.sh
+                    chmod +x pylint.sh
+                fi
+
                 ./pylint.sh || exit 1
                 '''
             }
