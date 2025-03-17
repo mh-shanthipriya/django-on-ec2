@@ -15,9 +15,12 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef', variable: 'GITHUB_TOKEN')]) {
                     sh '''
+                    echo "Checking if Git is installed..."
+                    git --version || { echo "Git not installed"; exit 1; }
+                    
                     echo "Cloning repository..."
                     rm -rf $APP_DIR  # Ensure a fresh clone
-                    git clone https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
+                    git clone --depth 1 https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
                     '''
                 }
             }
