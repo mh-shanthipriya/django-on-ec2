@@ -42,6 +42,8 @@ pipeline {
             steps {
                 sh '''
                 echo "Running Pylint Checks..."
+                sudo apt update
+                sudo apt install -y python3-pip  # Ensure pip is installed
                 cd $APP_DIR
                 chmod +x pylint.sh
                 ./pylint.sh || exit 1
