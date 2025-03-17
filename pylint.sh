@@ -4,7 +4,7 @@ set -euxo pipefail
 APP_DIR="/home/ubuntu/todo-app"
 VENV_DIR="$APP_DIR/venv"
 PYLINT_LOG="pylint_report.log"
-cd "$APP_DIR"
+cd "$APP_DIR"  
 
 # Create virtual environment if it doesn't exist
 if [ ! -d "$VENV_DIR" ]; then  
