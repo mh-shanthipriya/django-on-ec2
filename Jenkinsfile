@@ -15,31 +15,40 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                echo "Checking and Installing Git if not available..."
+                echo "🔄 Checking and Installing Dependencies..."
                 if ! command -v git &> /dev/null; then 
                     sudo apt update && sudo apt install -y git; 
                 fi
+                sudo apt install -y python3-pip
                 '''
             }
         }
 
         stage('Clone Repository') {
             steps {
-                withCredentials([usernamePassword(credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef',
-                                                  usernameVariable: 'GIT_USERNAME', 
-                                                  passwordVariable: 'GIT_PASSWORD')]) {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github',
+                    usernameVariable: 'GIT_USERNAME', 
+                    passwordVariable: 'GIT_PASSWORD'
+                )]) {
                     sh '''
-                    echo "Configuring Git Credentials Securely..."
-                    export GIT_ASKPASS=/tmp/git_askpass.sh
-                    echo '#!/bin/sh' > $GIT_ASKPASS
-                    echo 'echo "$GIT_PASSWORD"' >> $GIT_ASKPASS
-                    chmod +x $GIT_ASKPASS
+                    echo "🧹 Cleaning old workspace if exists..."
+                    if [ -d "$APP_DIR/.git" ]; then
+                        echo "❗ Previous Git repository detected. Cleaning workspace properly..."
+                        rm -rf $APP_DIR
+                    fi
+                    mkdir -p $APP_DIR
 
-                    echo "Cleaning application folder only..."
-                    rm -rf $APP_DIR/todoApp
+                    echo "🔄 Cloning repository..."
+                    git clone --depth 1 https://$GIT_USERNAME@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
 
-                    echo "Cloning repository..."
-                    git clone --depth 1 https://$GIT_USERNAME@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR/todoApp || exit 1
+                    # Verify Workspace
+                    if [ -d "$APP_DIR" ]; then
+                        echo "✅ Workspace created successfully: $APP_DIR"
+                    else
+                        echo "❌ Workspace creation failed."
+                        exit 1
+                    fi
                     '''
                 }
             }
@@ -48,10 +57,8 @@ pipeline {
         stage('Run Pylint Checks') {
             steps {
                 sh '''
-                echo "Running Pylint Checks..."
-                sudo apt update
-                sudo apt install -y python3-pip  # Ensure pip is installed
-                cd $APP_DIR/todoApp
+                echo "🚨 Running Pylint Checks..."
+                cd $APP_DIR
 
                 if [ -f "./pylint.sh" ]; then
                     chmod +x pylint.sh
@@ -67,17 +74,18 @@ pipeline {
             steps {
                 sshagent(['finalsshkeycredentials']) {
                     sh '''
-                    echo "Testing SSH Connection..."
+                    echo "🔐 Testing SSH Connection..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo 'SSH Connection Successful'" || exit 1
 
-                    echo "Transferring application files to EC2..."
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR/todoApp && mkdir -p $APP_DIR/todoApp"
+                    echo "📂 Creating app directory on EC2..."
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
 
-                    rsync -av --exclude '.git' --exclude 'venv' --exclude '__pycache__' $APP_DIR/todoApp/ $EC2_USER@$EC2_HOST:$APP_DIR/todoApp/
+                    echo "📤 Transferring application files to EC2..."
+                    rsync -av --exclude '.git' --exclude 'venv' --exclude '__pycache__' $APP_DIR/ $EC2_USER@$EC2_HOST:$APP_DIR/
 
-                    echo "Deploying Application..."
+                    echo "🚀 Deploying Application..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
-                    cd $APP_DIR/todoApp
+                    cd $APP_DIR
 
                     if [ ! -d "venv" ]; then 
                         python3 -m venv venv; 
@@ -92,7 +100,7 @@ pipeline {
                         exit 1
                     fi
 
-                    echo "Setting up Systemd Service for Django..."
+                    echo "🟢 Setting up Systemd Service for Django..."
                     sudo bash -c 'cat <<EOL > /etc/systemd/system/todoApp.service
                     [Unit]
                     Description=Todo App Service
@@ -101,14 +109,14 @@ pipeline {
                     [Service]
                     User=$EC2_USER
                     WorkingDirectory=$APP_DIR/todoApp
-                    ExecStart=$APP_DIR/todoApp/venv/bin/python3 manage.py runserver 0.0.0.0:8000
+                    ExecStart=$APP_DIR/venv/bin/python3 manage.py runserver 0.0.0.0:8000
                     Restart=always
 
                     [Install]
                     WantedBy=multi-user.target
                     EOL'
 
-                    echo "Restarting Application..."
+                    echo "🔄 Restarting Application..."
                     sudo systemctl daemon-reload
                     sudo systemctl enable todoApp
                     sudo systemctl restart todoApp
