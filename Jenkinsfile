@@ -1,69 +1,45 @@
 pipeline {
-    agent { label 'docker-agent-label' }
+    agent any
 
     environment {
-        AWS_ACCOUNT_ID = '571600845308'
-        AWS_REGION = 'ap-southeast-2'
+        AWS_ACCOUNT_ID = '571600845308'  // Updated AWS Account ID
+        AWS_REGION = 'ap-southeast-2'  // Updated AWS Region
         EC2_USER = 'ubuntu'
-        EC2_HOST = '54.252.172.203'
+        EC2_HOST = '54.252.172.203'  // Updated EC2 Host IP
+        SSH_CREDENTIAL_ID = 'finalsshkeycredentials'  // Updated SSH credentials ID
         APP_DIR = "/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop"
-
-        PYTHON_BIN = '/usr/bin/python3'
     }
-    stages {
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                echo "🔄 Checking and Installing Dependencies..."
-                if ! command -v git &> /dev/null; then 
-                    sudo apt update && sudo apt install -y git; 
-                fi
-                sudo apt install -y python3-pip
-                '''
-            }
-        }
 
-        stage('Clone Repository') {
+    stages {
+        stage('Checkout Code') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: 'new-token',
-                    usernameVariable: 'GIT_USERNAME', 
+                    credentialsId: 'new-token',  // Updated GitHub credentials ID
+                    usernameVariable: 'GIT_USERNAME',
                     passwordVariable: 'GIT_PASSWORD'
                 )]) {
                     sh '''
-                    echo "🧹 Cleaning old workspace if exists..."
-                    if [ -d "$APP_DIR/.git" ]; then
-                        echo "❗ Previous Git repository detected. Cleaning workspace properly..."
-                        rm -rf $APP_DIR
-                    fi
-                    mkdir -p $APP_DIR
-
                     echo "🔄 Cloning repository..."
-                    git clone --depth 1 https://$GIT_USERNAME@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
-
-                    # Verify Workspace
-                    if [ -d "$APP_DIR" ]; then
-                        echo "✅ Workspace created successfully: $APP_DIR"
+                    if [ ! -d "django-on-ec2" ]; then
+                        git clone https://$GIT_USERNAME:$GIT_PASSWORD@github.com/mh-shanthipriya/django-on-ec2.git
                     else
-                        echo "❌ Workspace creation failed."
-                        exit 1
+                        cd django-on-ec2 && git pull
                     fi
                     '''
                 }
             }
         }
 
-        stage('Run Pylint Checks') {
+        stage('Run Pylint Tests') {
             steps {
                 sh '''
-                echo "🚨 Running Pylint Checks..."
-                cd $APP_DIR
-
-                if [ -f "./pylint.sh" ]; then
-                    chmod +x pylint.sh
-                    ./pylint.sh || echo "⚠️ Pylint errors found, review logs."
+                echo "🔍 Running Pylint Tests..."
+                set -e
+                if [ -f ./pylint.sh ]; then
+                    chmod +x ./pylint.sh
+                    ./pylint.sh | tee pylint.log
                 else
-                    echo "❗ pylint.sh not found. Skipping lint checks..."
+                    echo "❗ pylint.sh not found — Skipping Pylint Tests."
                 fi
                 '''
             }
@@ -71,59 +47,51 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
-                sshagent(['finalsshkeycredentials']) {
+                sshagent([SSH_CREDENTIAL_ID]) {
                     sh '''
-                    echo "🔐 Testing SSH Connection..."
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo 'SSH Connection Successful'" || exit 1
-
-                    echo "📂 Creating app directory on EC2..."
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
-
-                    echo "📤 Transferring application files to EC2..."
-                    rsync -av --exclude '.git' --exclude 'venv' --exclude '__pycache__' $APP_DIR/ $EC2_USER@$EC2_HOST:$APP_DIR/
-
-                    echo "🚀 Deploying Application..."
+                    echo "🚀 Deploying to EC2..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
+                    set -e
+
+                    echo "🔑 Setting up environment on EC2..."
                     cd $APP_DIR
 
-                    if [ ! -d "venv" ]; then 
-                        python3 -m venv venv; 
+                    if [ ! -d "venv" ]; then
+                        python3 -m venv venv
                     fi
+
                     source venv/bin/activate
                     pip install --upgrade pip setuptools wheel
-                    echo "$(pwd)"
-                    if [ -f "requirements.txt" ]; then 
+
+                    echo "🔄 Installing dependencies..."
+                    if [ -f "requirements.txt" ]; then
                         pip install -r requirements.txt || exit 1
                     else
                         echo "❌ requirements.txt not found. Exiting..."
                         exit 1
                     fi
 
-                    echo "🟢 Setting up Systemd Service for Django..."
-                    sudo bash -c 'cat <<EOL > /etc/systemd/system/todoApp.service
-                    [Unit]
-                    Description=Todo App Service
-                    After=network.target
+                    echo "🔄 Running migrations..."
+                    python manage.py migrate
 
-                    [Service]
-                    User=$EC2_USER
-                    WorkingDirectory=$APP_DIR/todoApp
-                    ExecStart=$APP_DIR/venv/bin/python3 manage.py runserver 0.0.0.0:8000
-                    Restart=always
+                    echo "🟢 Starting Django application..."
+                    sudo systemctl restart todoApp || echo "❌ Failed to restart Django application"
 
-                    [Install]
-                    WantedBy=multi-user.target
-                    EOL'
-
-                    echo "🔄 Restarting Application..."
-                    sudo systemctl daemon-reload
-                    sudo systemctl enable todoApp
-                    sudo systemctl restart todoApp
+                    echo "📊 Checking application status..."
                     sudo systemctl status todoApp --no-pager
-                    EOF
+EOF
                     '''
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            echo '🟢 Pipeline Completed!!!'
+        }
+        failure {
+            echo '❗ Pipeline Failed — Please Check Logs.'
         }
     }
 }
