@@ -17,7 +17,7 @@ fi
 source "$VENV_DIR/bin/activate"
 
 # Upgrade pip and install dependencies
-pip install --upgrade pip pylint
+pip install --upgrade pip pylint pylint-django
 pip install -r requirements.txt || exit 1
 
 # Add APP_DIR to PYTHONPATH for proper import resolution
@@ -31,15 +31,17 @@ if [ -z "$PYTHON_FILES" ]; then
     exit 0
 fi
 
-# Run pylint and save the report
-pylint $PYTHON_FILES | tee "$PYLINT_LOG"
+# Run pylint with customized rules
+pylint \
+    --disable=C0114,C0115,C0116,C0301,C0303,W0611,W0613 \
+    $PYTHON_FILES | tee "$PYLINT_LOG"
 
 # Deactivate virtual environment
 deactivate
 
-# Exit with error code if pylint finds critical errors
-if grep -qE "(E0401|fatal)" "$PYLINT_LOG"; then
-    echo "❌ Pylint found errors. Check $PYLINT_LOG for details."
+# Exit with error code only for severe issues (Errors or Fatal)
+if grep -qE "(E|fatal)" "$PYLINT_LOG"; then
+    echo "❌ Pylint found critical errors. Check $PYLINT_LOG for details."
     exit 1
 fi
 
