@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 # Set the correct app directory
-APP_DIR="/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop"
+APP_DIR="/home/ubuntu/todoApp"
 VENV_DIR="$APP_DIR/venv"
 PYLINT_LOG="pylint_report.log"
 
