@@ -16,8 +16,19 @@ fi
 
 source "$VENV_DIR/bin/activate"
 
-# Upgrade pip and install dependencies required for linting
-pip install --upgrade pip pylint pylint-django
+# Upgrade pip and install dependencies
+pip install --upgrade pip setuptools wheel
+
+# Install dependencies from requirements.txt
+if [ -f "requirements.txt" ]; then
+    pip install -r requirements.txt || exit 1
+else
+    echo "❌ requirements.txt not found. Exiting..."
+    exit 1
+fi
+
+# Install linting tools
+pip install pylint pylint-django
 
 # Add APP_DIR to PYTHONPATH for proper import resolution
 export PYTHONPATH=$APP_DIR
