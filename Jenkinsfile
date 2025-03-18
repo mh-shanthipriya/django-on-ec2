@@ -81,7 +81,7 @@ pipeline {
                     fi
                     source venv/bin/activate
                     pip install --upgrade pip setuptools wheel
-
+                    echo "$(pwd)"
                     if [ -f "requirements.txt" ]; then 
                         pip install -r requirements.txt || exit 1
                     else
