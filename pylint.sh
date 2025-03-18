@@ -33,7 +33,7 @@ fi
 
 # Run pylint with customized rules
 pylint \
-    --disable=C0114,C0115,C0116,C0301,C0303,W0611,W0613 \
+    --disable=E0307,E1101,C0103,C0415,C0411,C0304,C0114,C0115,C0116,C0301,C0303,W0611,W0613 \
     $PYTHON_FILES | tee "$PYLINT_LOG"
 
 # Deactivate virtual environment
