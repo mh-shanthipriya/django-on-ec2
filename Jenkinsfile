@@ -13,20 +13,26 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                withCredentials([string(credentialsId: 'git-hub-token', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([usernamePassword(
+                    credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef',
+                    usernameVariable: 'GITHUB_USER',
+                    passwordVariable: 'GITHUB_TOKEN'
+                )]) {
                     sh '''
                     echo "Checking if repository already exists..."
                 
                     if [ -d "$APP_DIR/.git" ]; then
                         echo "✅ Repository exists. Pulling latest changes..."
                         cd $APP_DIR
-                        git remote set-url origin https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git
+                        git remote set-url origin https://$GITHUB_USER:$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git
                         git fetch origin main
                         git reset --hard origin/main
                         git pull origin main
                     else
                         echo "🔄 Cloning repository..."
-                        git clone https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
+                        rm -rf $APP_DIR
+                        mkdir -p $APP_DIR
+                        git clone --depth 1 https://$GITHUB_USER:$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
                     fi
 
                     # Verify Workspace
