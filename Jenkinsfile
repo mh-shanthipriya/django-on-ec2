@@ -21,7 +21,6 @@ pipeline {
 
                     echo "🔄 Cloning repository..."
                     git clone --depth 1 https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
-
                     # Verify Workspace
                     if [ -d "$APP_DIR" ]; then
                         echo "✅ Workspace created successfully: $APP_DIR"
