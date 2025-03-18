@@ -16,9 +16,8 @@ fi
 
 source "$VENV_DIR/bin/activate"
 
-# Upgrade pip and install dependencies
+# Upgrade pip and install dependencies required for linting
 pip install --upgrade pip pylint pylint-django
-pip install -r requirements.txt || exit 1
 
 # Add APP_DIR to PYTHONPATH for proper import resolution
 export PYTHONPATH=$APP_DIR
