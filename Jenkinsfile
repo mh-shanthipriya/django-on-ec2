@@ -7,28 +7,20 @@ pipeline {
         EC2_USER = 'ubuntu'
         EC2_HOST = '54.252.172.203'
         APP_DIR = "/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop"
-
         PYTHON_BIN = '/usr/bin/python3'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef',
-               
-             
-                )]) {
+                withCredentials([string(credentialsId: 'git-hub-token', variable: 'GITHUB_TOKEN')]) {
                     sh '''
                     echo "🧹 Cleaning old workspace if exists..."
-                    if [ -d "$APP_DIR/.git" ]; then
-                        echo "❗ Previous Git repository detected. Cleaning workspace properly..."
-                        rm -rf $APP_DIR
-                    fi
+                    rm -rf $APP_DIR
                     mkdir -p $APP_DIR
 
                     echo "🔄 Cloning repository..."
-                    git clone --depth 1 https://github.com/mh-shanthipriya/django-on-ec2.git 
+                    git clone --depth 1 https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
 
                     # Verify Workspace
                     if [ -d "$APP_DIR" ]; then
@@ -62,54 +54,20 @@ pipeline {
             steps {
                 sshagent(['finalsshkeycredentials']) {
                     sh '''
-                    echo "🔐 Testing SSH Connection..."
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo 'SSH Connection Successful'" || exit 1
-
-                    echo "📂 Creating app directory on EC2..."
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
-
-                    echo "📤 Transferring application files to EC2..."
-                    rsync -av --exclude '.git' --exclude 'venv' --exclude '__pycache__' $APP_DIR/ $EC2_USER@$EC2_HOST:$APP_DIR/
-
                     echo "🚀 Deploying Application..."
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
-                    cd $APP_DIR
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+cd $APP_DIR
 
-                    if [ ! -d "venv" ]; then 
-                        python3 -m venv venv; 
-                    fi
-                    source venv/bin/activate
-                    pip install --upgrade pip setuptools wheel
-                    echo "$(pwd)"
-                    if [ -f "requirements.txt" ]; then 
-                        pip install -r requirements.txt || exit 1
-                    else
-                        echo "❌ requirements.txt not found. Exiting..."
-                        exit 1
-                    fi
+# Kill existing server if running
+echo "Stopping existing server..."
+pkill -f "python3 manage.py runserver" || true
 
-                    echo "🟢 Setting up Systemd Service for Django..."
-                    sudo bash -c "cat <<EOL > /etc/systemd/system/todoApp.service
-                    [Unit]
-                    Description=Todo App Service
-                    After=network.target
+# Start new server
+echo "Starting new Python web server..."
+nohup python3 manage.py runserver 0.0.0.0:8000 > server.log 2>&1 &
 
-                    [Service]
-                    User=$EC2_USER
-                    WorkingDirectory=$APP_DIR/todoApp
-                    ExecStart=$APP_DIR/venv/bin/python3 manage.py runserver 0.0.0.0:8000
-                    Restart=always
-
-                    [Install]
-                    WantedBy=multi-user.target
-                    EOL"
-
-                    echo "🔄 Restarting Application..."
-                    sudo systemctl daemon-reload
-                    sudo systemctl enable todoApp
-                    sudo systemctl restart todoApp
-                    sudo systemctl status todoApp --no-pager
-                    EOF
+echo "✅ Deployment Complete! Access at http://$EC2_HOST:8000"
+EOF
                     '''
                 }
             }
