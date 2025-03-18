@@ -16,8 +16,8 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef',
-                    usernameVariable: 'GIT_USERNAME', 
-                    passwordVariable: 'GIT_PASSWORD'
+               
+             
                 )]) {
                     sh '''
                     echo "🧹 Cleaning old workspace if exists..."
@@ -28,7 +28,7 @@ pipeline {
                     mkdir -p $APP_DIR
 
                     echo "🔄 Cloning repository..."
-                    git clone --depth 1 https://$GIT_USERNAME@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
+                    git clone --depth 1 https://github.com/mh-shanthipriya/django-on-ec2.git 
 
                     # Verify Workspace
                     if [ -d "$APP_DIR" ]; then
