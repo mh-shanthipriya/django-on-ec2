@@ -10,19 +10,8 @@ pipeline {
 
         PYTHON_BIN = '/usr/bin/python3'
     }
-    stages {
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                echo "🔄 Checking and Installing Dependencies..."
-                if ! command -v git &> /dev/null; then 
-                    sudo apt update && sudo apt install -y git; 
-                fi
-                sudo apt install -y python3-pip
-                '''
-            }
-        }
 
+    stages {
         stage('Clone Repository') {
             steps {
                 withCredentials([usernamePassword(
@@ -114,16 +103,3 @@ pipeline {
                     [Install]
                     WantedBy=multi-user.target
                     EOL'
-
-                    echo "🔄 Restarting Application..."
-                    sudo systemctl daemon-reload
-                    sudo systemctl enable todoApp
-                    sudo systemctl restart todoApp
-                    sudo systemctl status todoApp --no-pager
-                    EOF
-                    '''
-                }
-            }
-        }
-    }
-}
