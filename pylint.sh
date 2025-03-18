@@ -16,15 +16,14 @@ fi
 
 source "$VENV_DIR/bin/activate"
 
-# Upgrade pip and install dependencies
+# Upgrade pip and install essential packages
 pip install --upgrade pip setuptools wheel
 
-# Install dependencies from requirements.txt
+# Install dependencies from requirements.txt (skip error if not found)
 if [ -f "requirements.txt" ]; then
-    pip install -r requirements.txt || exit 1
+    pip install -r requirements.txt || echo "⚠️ requirements.txt installation failed, continuing..."
 else
-    echo "❌ requirements.txt not found. Exiting..."
-    exit 1
+    echo "⚠️ requirements.txt not found. Skipping dependencies installation."
 fi
 
 # Install linting tools
