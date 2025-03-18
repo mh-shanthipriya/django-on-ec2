@@ -10,7 +10,6 @@ pipeline {
 
         PYTHON_BIN = '/usr/bin/python3'
     }
-
     stages {
         stage('Install Dependencies') {
             steps {
