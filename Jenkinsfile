@@ -15,12 +15,20 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'git-hub-token', variable: 'GITHUB_TOKEN')]) {
                     sh '''
-                    echo "🧹 Cleaning old workspace if exists..."
-                    rm -rf $APP_DIR
-                    mkdir -p $APP_DIR
+                    echo "Checking if repository already exists..."
+                
+                    if [ -d "$APP_DIR/.git" ]; then
+                        echo "✅ Repository exists. Pulling latest changes..."
+                        cd $APP_DIR
+                        git remote set-url origin https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git
+                        git fetch origin main
+                        git reset --hard origin/main
+                        git pull origin main
+                    else
+                        echo "🔄 Cloning repository..."
+                        git clone https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
+                    fi
 
-                    echo "🔄 Cloning repository..."
-                    git clone --depth 1 https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
                     # Verify Workspace
                     if [ -d "$APP_DIR" ]; then
                         echo "✅ Workspace created successfully: $APP_DIR"
@@ -32,8 +40,6 @@ pipeline {
                 }
             }
         }
-
-        
 
         stage('Run Pylint Checks') {
             steps {
