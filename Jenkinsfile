@@ -66,15 +66,16 @@ pipeline {
                 sshagent(['finalsshkeycredentials']) {
                     sh '''
                     echo "Testing SSH Connection..."
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo 'SSH Connection Successful'"
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo 'SSH Connection Successful'" || exit 1
 
                     echo "Transferring application files to EC2..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
-                    scp -o StrictHostKeyChecking=no -r $APP_DIR/* $EC2_USER@$EC2_HOST:$APP_DIR
+                    scp -o StrictHostKeyChecking=no -r $APP_DIR/. $EC2_USER@$EC2_HOST:$APP_DIR
 
                     echo "Deploying Application..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
                     cd $APP_DIR
+
                     if [ ! -d "venv" ]; then 
                         python3 -m venv venv; 
                     fi
@@ -88,7 +89,7 @@ pipeline {
                         exit 1
                     fi
 
-                    echo "Setting up Systemd Service for Uvicorn..."
+                    echo "Setting up Systemd Service for Django..."
                     sudo bash -c 'cat <<EOL > /etc/systemd/system/todoApp.service
                     [Unit]
                     Description=Todo App Service
@@ -97,7 +98,7 @@ pipeline {
                     [Service]
                     User=$EC2_USER
                     WorkingDirectory=$APP_DIR
-                    ExecStart=$APP_DIR/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+                    ExecStart=$APP_DIR/venv/bin/python3 manage.py runserver 0.0.0.0:8000
                     Restart=always
 
                     [Install]
