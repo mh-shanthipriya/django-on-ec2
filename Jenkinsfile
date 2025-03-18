@@ -6,7 +6,7 @@ pipeline {
         AWS_REGION = 'ap-southeast-2'
         EC2_USER = 'ubuntu'
         EC2_HOST = '54.252.172.203'
-        APP_DIR = '/home/ubuntu/todoApp'  // Changed from todo-app to todoApp
+        APP_DIR = '/home/ubuntu/todoApp'
         PYTHON_BIN = '/usr/bin/python3'
     }
 
@@ -34,7 +34,7 @@ pipeline {
                     echo 'echo "$GIT_PASSWORD"' >> $GIT_ASKPASS
                     chmod +x $GIT_ASKPASS
 
-                    echo "Cloning Repository..."
+                    echo "Cleaning previous workspace and cloning repository..."
                     rm -rf $APP_DIR
                     git clone --depth 1 https://$GIT_USERNAME@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
                     '''
@@ -50,7 +50,11 @@ pipeline {
                 sudo apt install -y python3-pip  # Ensure pip is installed
                 cd $APP_DIR
 
-                # Ensure pylint.sh is correct and executable
+                if [ ! -f "./pylint.sh" ]; then
+                    echo "❌ pylint.sh not found. Exiting..."
+                    exit 1
+                fi
+
                 chmod +x pylint.sh
                 ./pylint.sh || exit 1
                 '''
@@ -76,10 +80,16 @@ pipeline {
                     fi
                     source venv/bin/activate
                     pip install --upgrade pip setuptools wheel
-                    pip install -r requirements.txt || exit 1
+
+                    if [ -f "requirements.txt" ]; then 
+                        pip install -r requirements.txt || exit 1
+                    else
+                        echo "❌ requirements.txt not found. Exiting..."
+                        exit 1
+                    fi
 
                     echo "Setting up Systemd Service for Uvicorn..."
-                    sudo tee /etc/systemd/system/todoApp.service > /dev/null <<EOL
+                    sudo bash -c 'cat <<EOL > /etc/systemd/system/todoApp.service
                     [Unit]
                     Description=Todo App Service
                     After=network.target
@@ -92,7 +102,7 @@ pipeline {
 
                     [Install]
                     WantedBy=multi-user.target
-                    EOL
+                    EOL'
 
                     echo "Restarting Application..."
                     sudo systemctl daemon-reload
