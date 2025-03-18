@@ -6,7 +6,7 @@ pipeline {
         AWS_REGION = 'ap-southeast-2'
         EC2_USER = 'ubuntu'
         EC2_HOST = '54.252.172.203'
-        APP_DIR = '/home/ubuntu/todoApp'
+        APP_DIR = '/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop'
         PYTHON_BIN = '/usr/bin/python3'
     }
 
