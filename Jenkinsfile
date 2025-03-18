@@ -14,7 +14,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 withCredentials([usernamePassword(
-                    credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef',
+                    credentialsId: 'github',
                     usernameVariable: 'GITHUB_USER',
                     passwordVariable: 'GITHUB_TOKEN'
                 )]) {
