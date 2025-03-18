@@ -110,7 +110,7 @@ pipeline {
             sudo systemctl enable todoApp
             sudo systemctl restart todoApp
             sudo systemctl status todoApp --no-pager
-            EOF
+EOF
             '''
         }
     }
