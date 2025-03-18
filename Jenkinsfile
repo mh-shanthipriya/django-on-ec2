@@ -35,11 +35,11 @@ pipeline {
                     echo 'echo "$GIT_PASSWORD"' >> $GIT_ASKPASS
                     chmod +x $GIT_ASKPASS
 
-                    echo "Cleaning application folder only..."
-                    rm -rf $APP_DIR/todoApp
+                    echo "Cleaning application folder..."
+                    rm -rf $APP_DIR
 
                     echo "Cloning repository..."
-                    git clone --depth 1 https://$GIT_USERNAME@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR/todoApp || exit 1
+                    git clone --depth 1 https://$GIT_USERNAME@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
                     '''
                 }
             }
@@ -51,7 +51,7 @@ pipeline {
                 echo "Running Pylint Checks..."
                 sudo apt update
                 sudo apt install -y python3-pip  # Ensure pip is installed
-                cd $APP_DIR/todoApp
+                cd $APP_DIR
 
                 if [ -f "./pylint.sh" ]; then
                     chmod +x pylint.sh
@@ -71,13 +71,13 @@ pipeline {
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo 'SSH Connection Successful'" || exit 1
 
                     echo "Transferring application files to EC2..."
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR/todoApp && mkdir -p $APP_DIR/todoApp"
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
 
-                    rsync -av --exclude '.git' --exclude 'venv' --exclude '__pycache__' $APP_DIR/todoApp/ $EC2_USER@$EC2_HOST:$APP_DIR/todoApp/
+                    rsync -av --exclude '.git' --exclude 'venv' --exclude '__pycache__' $APP_DIR/ $EC2_USER@$EC2_HOST:$APP_DIR/
 
                     echo "Deploying Application..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
-                    cd $APP_DIR/todoApp
+                    cd $APP_DIR
 
                     if [ ! -d "venv" ]; then 
                         python3 -m venv venv; 
@@ -101,7 +101,7 @@ pipeline {
                     [Service]
                     User=$EC2_USER
                     WorkingDirectory=$APP_DIR/todoApp
-                    ExecStart=$APP_DIR/todoApp/venv/bin/python3 manage.py runserver 0.0.0.0:8000
+                    ExecStart=$APP_DIR/venv/bin/python3 manage.py runserver 0.0.0.0:8000
                     Restart=always
 
                     [Install]
