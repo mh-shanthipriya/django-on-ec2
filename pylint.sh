@@ -4,7 +4,7 @@
 set -euxo pipefail  
 
 # Define variables
-APP_DIR="/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develope"
+APP_DIR="/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop"
 PYTHON_BIN="/usr/bin/python3"
 
 # Navigate to the application directory
