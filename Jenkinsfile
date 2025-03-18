@@ -89,7 +89,7 @@ pipeline {
                     fi
 
                     echo "🟢 Setting up Systemd Service for Django..."
-                    sudo bash -c 'cat <<EOL > /etc/systemd/system/todoApp.service
+                    sudo bash -c "cat <<EOL > /etc/systemd/system/todoApp.service
                     [Unit]
                     Description=Todo App Service
                     After=network.target
@@ -102,4 +102,26 @@ pipeline {
 
                     [Install]
                     WantedBy=multi-user.target
-                    EOL'
+                    EOL"
+
+                    echo "🔄 Restarting Application..."
+                    sudo systemctl daemon-reload
+                    sudo systemctl enable todoApp
+                    sudo systemctl restart todoApp
+                    sudo systemctl status todoApp --no-pager
+                    EOF
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo '✅ Pipeline Completed!'
+        }
+        failure {
+            echo '❌ Pipeline Failed — Please Check Logs.'
+        }
+    }
+}
