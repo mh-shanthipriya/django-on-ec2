@@ -7,7 +7,6 @@ pipeline {
         EC2_USER = 'ubuntu'
         EC2_HOST = '54.252.172.203'
         APP_DIR = "/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop"
-
         PYTHON_BIN = '/usr/bin/python3'
     }
 
@@ -25,21 +24,28 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                withCredentials([usernamePassword(credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef',
-                                                  usernameVariable: 'GIT_USERNAME', 
-                                                  passwordVariable: 'GIT_PASSWORD')]) {
+                withCredentials([usernamePassword(
+                    credentialsId: '91ba94ac-f61b-4f67-899f-0755b3e48bef',
+                    usernameVariable: 'GIT_USERNAME', 
+                    passwordVariable: 'GIT_PASSWORD'
+                )]) {
                     sh '''
-                    echo "Configuring Git Credentials Securely..."
-                    export GIT_ASKPASS=/tmp/git_askpass.sh
-                    echo '#!/bin/sh' > $GIT_ASKPASS
-                    echo 'echo "$GIT_PASSWORD"' >> $GIT_ASKPASS
-                    chmod +x $GIT_ASKPASS
+                    echo "Ensuring workspace directory exists..."
+                    mkdir -p $APP_DIR
 
                     echo "Cleaning application folder..."
-                    rm -rf $APP_DIR
+                    rm -rf $APP_DIR/*  # Safely clears contents without deleting the folder
 
                     echo "Cloning repository..."
                     git clone --depth 1 https://$GIT_USERNAME@github.com/mh-shanthipriya/django-on-ec2.git $APP_DIR || exit 1
+
+                    # Verify Workspace
+                    if [ -d "$APP_DIR" ]; then
+                        echo "✅ Workspace created successfully: $APP_DIR"
+                    else
+                        echo "❌ Workspace creation failed."
+                        exit 1
+                    fi
                     '''
                 }
             }
@@ -70,9 +76,11 @@ pipeline {
                     echo "Testing SSH Connection..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "echo 'SSH Connection Successful'" || exit 1
 
-                    echo "Transferring application files to EC2..."
-                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "rm -rf $APP_DIR && mkdir -p $APP_DIR"
+                    echo "Preparing deployment directory on EC2..."
+                    ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
+                        sudo mkdir -p $APP_DIR && sudo chown -R $EC2_USER:$EC2_USER $APP_DIR"
 
+                    echo "Transferring application files to EC2..."
                     rsync -av --exclude '.git' --exclude 'venv' --exclude '__pycache__' $APP_DIR/ $EC2_USER@$EC2_HOST:$APP_DIR/
 
                     echo "Deploying Application..."
@@ -100,7 +108,7 @@ pipeline {
 
                     [Service]
                     User=$EC2_USER
-                    WorkingDirectory=$APP_DIR/todoApp
+                    WorkingDirectory=$APP_DIR
                     ExecStart=$APP_DIR/venv/bin/python3 manage.py runserver 0.0.0.0:8000
                     Restart=always
 
