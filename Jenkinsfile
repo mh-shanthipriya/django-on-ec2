@@ -6,7 +6,7 @@ pipeline {
         AWS_REGION = 'ap-southeast-2'  // Updated AWS Region
         EC2_USER = 'ubuntu'
         EC2_HOST = '54.252.172.203'  // Updated EC2 Host IP
-        APP_DIR = "/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop/todoApp"
+        APP_DIR = "/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop"
         ECR_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/todoapp"
         PYTHON_BIN = '/usr/bin/python3'
         SSH_CREDENTIAL_ID = 'finalsshkeycredentials'  // Keeping the same SSH credentials
