@@ -1,10 +1,9 @@
-
 #!/bin/bash
 # Enforce strict error handling
 set -euxo pipefail  
 
 # Define variables
-APP_DIR="/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop"
+APP_DIR="/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop"  # Updated APP_DIR
 PYTHON_BIN="/usr/bin/python3"
 
 # Navigate to the application directory
