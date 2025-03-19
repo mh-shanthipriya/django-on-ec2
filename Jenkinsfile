@@ -6,41 +6,75 @@ pipeline {
         AWS_REGION = 'ap-southeast-2'  // Updated AWS Region
         EC2_USER = 'ubuntu'
         EC2_HOST = '54.252.172.203'  // Updated EC2 Host IP
-        SSH_CREDENTIAL_ID = 'finalsshkeycredentials'  // Updated SSH credentials ID
-        APP_DIR = "/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop"
+        APP_DIR = "/home/ubuntu/jenkins/jenkins/workspace/todo-pipeline_main"
+        ECR_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/todoapp"
+        PYTHON_BIN = '/usr/bin/python3'
+        SSH_CREDENTIAL_ID = 'finalsshkeycredentials'  // Keeping the same SSH credentials
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Clone Repository') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'new-token',  // Updated GitHub credentials ID
-                    usernameVariable: 'GIT_USERNAME',
-                    passwordVariable: 'GIT_PASSWORD'
-                )]) {
+                withCredentials([string(credentialsId: 'new-token', variable: 'GITHUB_TOKEN')]) {
                     sh '''
-                    echo "🔄 Cloning repository..."
-                    if [ ! -d "django-on-ec2" ]; then
-                        git clone https://$GIT_USERNAME:$GIT_PASSWORD@github.com/mh-shanthipriya/django-on-ec2.git
+                    echo "Checking if repository already exists..."
+                    if [ -d "django-on-ec2/.git" ]; then
+                        echo "Repository exists. Pulling latest changes..."
+                        cd django-on-ec2
+                        git remote set-url origin https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git
+                        git fetch origin main
+                        git reset --hard origin/main
+                        git pull origin main
                     else
-                        cd django-on-ec2 && git pull
+                        echo "Cloning Django repository..."
+                        git clone https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git
                     fi
                     '''
                 }
             }
         }
 
-        stage('Run Pylint Tests') {
+        stage('Run Pylint Checks') {
             steps {
                 sh '''
-                echo "🔍 Running Pylint Tests..."
-                set -e
-                if [ -f ./pylint.sh ]; then
-                    chmod +x ./pylint.sh
-                    ./pylint.sh | tee pylint.log
+                echo "Running Pylint Checks..."
+                if [ -f django-on-ec2/pylint.sh ]; then
+                    chmod +x django-on-ec2/pylint.sh
+                    ./django-on-ec2/pylint.sh | tee pylint.log || echo "⚠️ Pylint warnings found, review pylint.log."
                 else
-                    echo "❗ pylint.sh not found — Skipping Pylint Tests."
+                    echo "❌ pylint.sh not found. Skipping pylint checks."
                 fi
+                '''
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                echo "Building Docker Image..."
+                cd django-on-ec2
+                docker build -t todoapp -f Dockerfile .
+                docker tag todoapp:latest $ECR_URI:latest
+                '''
+            }
+        }
+
+        stage('Login to AWS ECR') {
+            steps {
+                withCredentials([string(credentialsId: 'awscredential', variable: 'AWS_ECR_PASSWORD')]) {
+                    sh '''
+                    echo "Logging into AWS ECR..."
+                    aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URI
+                    '''
+                }
+            }
+        }
+
+        stage('Push Docker Image to ECR') {
+            steps {
+                sh '''
+                echo "Pushing Docker Image to AWS ECR..."
+                docker push $ECR_URI:latest
                 '''
             }
         }
@@ -49,36 +83,20 @@ pipeline {
             steps {
                 sshagent([SSH_CREDENTIAL_ID]) {
                     sh '''
-                    echo "🚀 Deploying to EC2..."
+                    echo "Deploying on EC2..."
                     ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
                     set -e
+                    echo 'Checking for existing container...'
+                    docker ps -q --filter 'name=todo-container' | grep -q . && docker stop todo-container && docker rm -f todo-container || echo 'No running container found.'
 
-                    echo "🔑 Setting up environment on EC2..."
-                    cd $APP_DIR
+                    echo 'Checking for processes using port 8000...'
+                    sudo lsof -ti:8000 | xargs -r sudo kill -9 || echo 'No process found on port 8000.'
 
-                    if [ ! -d "venv" ]; then
-                        python3 -m venv venv
-                    fi
+                    echo 'Pulling latest image from ECR...'
+                    docker pull $ECR_URI:latest
 
-                    source venv/bin/activate
-                    pip install --upgrade pip setuptools wheel
-
-                    echo "🔄 Installing dependencies..."
-                    if [ -f "requirements.txt" ]; then
-                        pip install -r requirements.txt || exit 1
-                    else
-                        echo "❌ requirements.txt not found. Exiting..."
-                        exit 1
-                    fi
-
-                    echo "🔄 Running migrations..."
-                    python manage.py migrate
-
-                    echo "🟢 Starting Django application..."
-                    sudo systemctl restart todoApp || echo "❌ Failed to restart Django application"
-
-                    echo "📊 Checking application status..."
-                    sudo systemctl status todoApp --no-pager
+                    echo 'Running new container...'
+                    docker run -d --restart=always -p 8000:8000 --name todo-container $ECR_URI:latest
 EOF
                     '''
                 }
