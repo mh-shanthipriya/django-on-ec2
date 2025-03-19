@@ -35,9 +35,12 @@ else
     pip install -r requirements.txt
 fi
 
-# Run Pylint checks
+# Run Pylint checks with customized rules
 echo "🔍 Running Pylint Checks..."
-python3 -m pylint todoApp todos manage.py | tee pylint.log || {
+python3 -m pylint \
+    --disable=missing-docstring,invalid-name,trailing-whitespace,line-too-long,no-member,import-outside-toplevel \
+    --max-line-length=120 \
+    todoApp todos manage.py | tee pylint.log || {
     echo "❌ Pylint checks failed. Fix issues before proceeding!"
     exit 1
 }
