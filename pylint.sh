@@ -35,15 +35,22 @@ else
     pip install -r requirements.txt
 fi
 
-# Run Pylint checks with customized rules
+# Run Pylint checks with score threshold
 echo "🔍 Running Pylint Checks..."
-python3 -m pylint \
+pylint_score=$(python3 -m pylint \
     --disable=missing-docstring,invalid-name,trailing-whitespace,line-too-long,no-member,import-outside-toplevel \
     --max-line-length=120 \
-    todoApp todos manage.py | tee pylint.log || {
-    echo "❌ Pylint checks failed. Fix issues before proceeding!"
+    todoApp todos manage.py | tee pylint.log | grep "Your code has been rated at" | awk '{print $7}' | cut -d'/' -f1)
+
+# Set a passing threshold (e.g., 8.0/10)
+threshold=8.0
+
+if (( $(echo "$pylint_score < $threshold" | bc -l) )); then
+    echo "❌ Pylint score ($pylint_score) below threshold ($threshold). Fix issues before proceeding!"
     exit 1
-}
+else
+    echo "✅ Pylint score ($pylint_score) meets the threshold ($threshold). Proceeding..."
+fi  
 
 # Ensure no existing process is running on port 8000
 echo "🔍 Checking for existing process on port 8000..."
