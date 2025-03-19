@@ -26,12 +26,12 @@ pipeline {
                         echo "Repository exists. Pulling latest changes..."
                         cd django-on-ec2
                         git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@github.com/mh-shanthipriya/django-on-ec2.git
-                        git fetch origin main
-                        git reset --hard origin/main
-                        git pull origin main
+                        git fetch origin develop
+                        git reset --hard origin/develop
+                        git pull origin develop
                     else
                         echo "Cloning Django repository..."
-                        git clone https://$GIT_USERNAME:$GIT_PASSWORD@github.com/mh-shanthipriya/django-on-ec2.git
+                        git clone -b develop https://$GIT_USERNAME:$GIT_PASSWORD@github.com/mh-shanthipriya/django-on-ec2.git
                     fi
                     '''
                 }
