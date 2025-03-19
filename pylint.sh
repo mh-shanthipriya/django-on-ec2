@@ -24,32 +24,29 @@ if [ ! -f "manage.py" ]; then
     exit 1
 fi
 
-# Activate virtual environment (if available)
+# Activate virtual environment (if it exists)
 if [ -d "venv" ]; then
     echo "✅ Activating Virtual Environment"
-    source venv/bin/activate
+    source "$APP_DIR/venv/bin/activate"
 else
-    echo "⚠️ Virtual environment not found. Installing dependencies..."
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
+    echo "⚠️ Virtual environment not found. Running without venv."
 fi
-
-# Run database migrations
-echo "📦 Running Migrations..."
-python3 manage.py migrate
 
 # Run Pylint checks
 echo "🔍 Running Pylint Checks..."
-python3 -m pylint todoApp todos manage.py | tee pylint.log || echo "⚠️ Pylint warnings found, review pylint.log."
+python3 -m pylint todoApp todos manage.py | tee pylint.log
+if [ $? -ne 0 ]; then
+    echo "❌ Pylint checks failed. Fix issues before proceeding!"
+    exit 1
+fi
 
-# Collect static files
-echo "📁 Collecting static files..."
-python3 manage.py collectstatic --noinput
+# Ensure no existing process is running on port 8000
+echo "🔍 Checking for existing process on port 8000..."
+fuser -k 8000/tcp || echo "⚠️ No existing process found on port 8000."
 
-# Stop any running Django instance on port 8000
-echo "🛑 Stopping existing Django application (if any)..."
-pkill -f "manage.py runserver" || echo "⚠️ No existing Django process found."
+# Rotate logs
+echo "🔄 Rotating logs..."
+mv app.log app.log.bak 2>/dev/null || true
 
 # Start the application
 echo "🚀 Starting Django Application..."
