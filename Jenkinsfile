@@ -6,7 +6,7 @@ pipeline {
         AWS_REGION = 'ap-southeast-2'  // Updated AWS Region
         EC2_USER = 'ubuntu'
         EC2_HOST = '54.252.172.203'  // Updated EC2 Host IP
-        APP_DIR = "/home/ubuntu/jenkins/jenkins/workspace/todo-pipeline_main"
+        APP_DIR = "/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop/todoApp"
         ECR_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/todoapp"
         PYTHON_BIN = '/usr/bin/python3'
         SSH_CREDENTIAL_ID = 'finalsshkeycredentials'  // Keeping the same SSH credentials
@@ -15,19 +15,23 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                withCredentials([string(credentialsId: 'new-token', variable: 'GITHUB_TOKEN')]) {
+                withCredentials([usernamePassword(
+                    credentialsId: 'new-token',
+                    usernameVariable: 'GIT_USERNAME',
+                    passwordVariable: 'GIT_PASSWORD'
+                )]) {
                     sh '''
                     echo "Checking if repository already exists..."
                     if [ -d "django-on-ec2/.git" ]; then
                         echo "Repository exists. Pulling latest changes..."
                         cd django-on-ec2
-                        git remote set-url origin https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git
+                        git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@github.com/mh-shanthipriya/django-on-ec2.git
                         git fetch origin main
                         git reset --hard origin/main
                         git pull origin main
                     else
                         echo "Cloning Django repository..."
-                        git clone https://$GITHUB_TOKEN@github.com/mh-shanthipriya/django-on-ec2.git
+                        git clone https://$GIT_USERNAME:$GIT_PASSWORD@github.com/mh-shanthipriya/django-on-ec2.git
                     fi
                     '''
                 }
