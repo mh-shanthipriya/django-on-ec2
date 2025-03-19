@@ -2,16 +2,12 @@
 # Enforce strict error handling
 set -euxo pipefail  
 
-# Define variables
-APP_DIR="/home/jenkins/workspace/git_deploy_develop"
-PYTHON_BIN="/usr/bin/python3"
+# Use Jenkins' workspace environment variable
+APP_DIR="${WORKSPACE:-/var/lib/jenkins/workspace/git_deploy_develop}"
 
-# Debugging: Check current directory and list files
+# Debugging: Check the actual workspace path
 echo "📂 Current Directory: $(pwd)"
-echo "📝 Listing /home/jenkins/workspace/"
-ls -la /home/jenkins/workspace/
-echo "📝 Listing APP_DIR ($APP_DIR)"
-ls -la "$APP_DIR" || echo "⚠️ APP_DIR not found!"
+echo "🔍 Expected APP_DIR: $APP_DIR"
 
 # Ensure the directory exists
 if [ ! -d "$APP_DIR" ]; then
@@ -38,10 +34,10 @@ fi
 
 # Run Pylint checks
 echo "🔍 Running Pylint Checks..."
-$PYTHON_BIN -m pylint todoApp todos manage.py | tee pylint.log || echo "⚠️ Pylint warnings found, review pylint.log."
+python3 -m pylint todoApp todos manage.py | tee pylint.log || echo "⚠️ Pylint warnings found, review pylint.log."
 
 # Start the application
 echo "🚀 Starting Django Application..."
-nohup $PYTHON_BIN manage.py runserver 0.0.0.0:8000 > app.log 2>&1 &
+nohup python3 manage.py runserver 0.0.0.0:8000 > app.log 2>&1 &
 
 echo "✅ Deployment successful!"
