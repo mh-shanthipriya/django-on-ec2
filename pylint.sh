@@ -25,31 +25,33 @@ if [ ! -f "manage.py" ]; then
 fi
 
 # Activate virtual environment (if it exists)
-if [ -d "venv" ]; then
+if [ -d "venv/bin/activate" ]; then
     echo "✅ Activating Virtual Environment"
-    source "$APP_DIR/venv/bin/activate"
+    source "venv/bin/activate"
 else
     echo "⚠️ Virtual environment not found. Running without venv."
 fi
 
 # Run Pylint checks
 echo "🔍 Running Pylint Checks..."
-python3 -m pylint todoApp todos manage.py | tee pylint.log
-if [ $? -ne 0 ]; then
+python3 -m pylint todoApp todos manage.py | tee pylint.log || {
     echo "❌ Pylint checks failed. Fix issues before proceeding!"
     exit 1
-fi
+}
 
 # Ensure no existing process is running on port 8000
 echo "🔍 Checking for existing process on port 8000..."
-fuser -k 8000/tcp || echo "⚠️ No existing process found on port 8000."
+fuser -k 8000/tcp || true
 
 # Rotate logs
-echo "🔄 Rotating logs..."
-mv app.log app.log.bak 2>/dev/null || true
+if [ -f "app.log" ]; then
+    echo "🔄 Rotating logs..."
+    mv app.log app.log.bak
+fi
 
 # Start the application
 echo "🚀 Starting Django Application..."
 nohup python3 manage.py runserver 0.0.0.0:8000 > app.log 2>&1 &
+echo $! > app.pid
 
 echo "✅ Deployment successful!"
