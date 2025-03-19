@@ -6,6 +6,13 @@ set -euxo pipefail
 APP_DIR="/home/jenkins/workspace/git_deploy_develop"
 PYTHON_BIN="/usr/bin/python3"
 
+# Debugging: Check current directory and list files
+echo "📂 Current Directory: $(pwd)"
+echo "📝 Listing /home/jenkins/workspace/"
+ls -la /home/jenkins/workspace/
+echo "📝 Listing APP_DIR ($APP_DIR)"
+ls -la "$APP_DIR" || echo "⚠️ APP_DIR not found!"
+
 # Ensure the directory exists
 if [ ! -d "$APP_DIR" ]; then
     echo "❌ ERROR: Directory $APP_DIR not found!"
@@ -23,6 +30,7 @@ fi
 
 # Activate virtual environment (if it exists)
 if [ -d "venv" ]; then
+    echo "✅ Activating Virtual Environment"
     source venv/bin/activate
 else
     echo "⚠️ Virtual environment not found. Running without venv."
