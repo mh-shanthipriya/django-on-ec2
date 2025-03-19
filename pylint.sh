@@ -2,8 +2,8 @@
 # Enforce strict error handling
 set -euxo pipefail  
 
-# Use Jenkins' workspace environment variable
-APP_DIR="${WORKSPACE:-/var/lib/jenkins/workspace/git_deploy_develop}"
+# Define the correct APP_DIR path for the deployment server
+APP_DIR="/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop_2/django-on-ec2"
 
 # Debugging: Check the actual workspace path
 echo "📂 Current Directory: $(pwd)"
@@ -25,11 +25,14 @@ if [ ! -f "manage.py" ]; then
 fi
 
 # Activate virtual environment (if it exists)
-if [ -d "venv/bin/activate" ]; then
+if [ -d "venv" ]; then
     echo "✅ Activating Virtual Environment"
     source "venv/bin/activate"
 else
-    echo "⚠️ Virtual environment not found. Running without venv."
+    echo "⚠️ Virtual environment not found. Creating one..."
+    python3 -m venv venv
+    source "venv/bin/activate"
+    pip install -r requirements.txt
 fi
 
 # Run Pylint checks
@@ -41,7 +44,17 @@ python3 -m pylint todoApp todos manage.py | tee pylint.log || {
 
 # Ensure no existing process is running on port 8000
 echo "🔍 Checking for existing process on port 8000..."
-fuser -k 8000/tcp || true
+if [ -f "app.pid" ]; then
+    PID=$(cat app.pid)
+    if ps -p $PID > /dev/null 2>&1; then
+        echo "🛑 Stopping existing Django application with PID: $PID"
+        kill -9 $PID
+    fi
+    rm -f app.pid
+else
+    echo "⚠️ No PID file found. Checking port directly..."
+    fuser -k 8000/tcp || echo "✅ No process found on port 8000."
+fi
 
 # Rotate logs
 if [ -f "app.log" ]; then
