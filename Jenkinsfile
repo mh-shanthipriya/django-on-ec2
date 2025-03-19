@@ -6,7 +6,7 @@ pipeline {
         AWS_REGION = 'ap-southeast-2'
         EC2_USER = 'ubuntu'
         EC2_HOST = '54.252.172.203'
-        APP_DIR = "/home/jenkins/workspace/git_deploy_develop/django-on-ec2"
+        APP_DIR = "/home/ubuntu/jenkins/jenkins/workspace/git_deploy_develop_2/django-on-ec2"
         ECR_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/todoapp"
         PYTHON_BIN = '/usr/bin/python3'
         SSH_CREDENTIAL_ID = 'finalsshkeycredentials'
@@ -25,7 +25,6 @@ pipeline {
                     if [ -d "$APP_DIR/.git" ]; then
                         echo "✅ Repository exists. Pulling latest changes..."
                         cd $APP_DIR
-                        git remote set-url origin https://$GIT_USERNAME:$GIT_PASSWORD@github.com/mh-shanthipriya/django-on-ec2.git
                         git fetch origin develop
                         git reset --hard origin/develop
                         git pull origin develop
