@@ -1,0 +1,21 @@
+name: SonarQube Analysis
+
+on:
+  push:
+    branches:
+      - develop  
+
+jobs:
+  sonar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: "http://13.203.193.239:9000"
+
