@@ -3,7 +3,7 @@ name: SonarQube Analysis
 on:
   push:
     branches:
-      - develop  
+      - develop  # Change if needed
 
 jobs:
   sonar:
@@ -18,4 +18,4 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: "http://13.203.193.239:9000"
-
+          SONAR_PROJECT_KEY: "django-on-ec2"  # 🔹 Add this (your repo name)
