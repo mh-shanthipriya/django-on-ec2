@@ -23,6 +23,6 @@ jobs:
       - name: Create GitHub Issue for New Errors
         run: |
           curl -X POST -H "Authorization: token ${{ secrets.SONAR_GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
             -d '{"title": "New SonarQube Issues", "body": "Check SonarQube for new issues: http://13.203.193.239:9000/dashboard?id=django-on-ec2"}' \
-            https://api.github.com/repos/YOUR_GITHUB_USERNAME/django-on-ec2/issues
-
+            https://api.github.com/repos/mh-shanthipriya/django-on-ec2/issues
